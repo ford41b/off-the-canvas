@@ -6,3 +6,6 @@ export const C = {
 export const W = 1280;
 export const H = 720;
 export const INTRO_URL = 'https://media.base44.com/videos/public/user_6a9380e665308987a4a3c3ec/ce85f1254_claude-vs-codex.mp4';
+// Fighter colors are tuned for fills; mixed toward ink they pass AA contrast as small text on white.
+const mix = (a, b, k) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - k) + parseInt(b.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
+export const labelColor = (f) => mix(f.color === C.charcoal ? C.red : f.color, C.ink, 0.35);

@@ -91,3 +91,14 @@
     @apply bg-background text-foreground font-body;
   }
 }
+/* Game: a visible, on-brand keyboard focus ring everywhere (mouse clicks don't show it). */
+@layer base {
+  button:focus-visible, [role="switch"]:focus-visible, [role="slider"]:focus-visible, a:focus-visible {
+    outline: 3px solid #2F5BEA;
+    outline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}

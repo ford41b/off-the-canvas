@@ -1,4 +1,5 @@
 import { blankInput } from './engine';
+import { RANGED } from './ranged';
 
 const DIFF = {
   easy: { react: 22, aggr: 0.35, def: 0.08, rec: 0.55, fool: 0.6 },
@@ -51,7 +52,7 @@ function decide(g, me, b, D, out, st) {
   const face = () => { if (me.facing !== dirT) { move(dirT); return false; } return true; };
 
   const threat = opp.act && opp.act.move && opp.act.t <= opp.act.move.startup && Math.abs(opp.x - me.x) < 130 && Math.abs(opp.y - me.y) < 90;
-  const proj = g.projectiles.find((p) => p.owner !== me.idx && Math.abs(p.x - me.x) < 150 && Math.sign(me.x - p.x) === Math.sign(p.vx));
+  const proj = g.projectiles.find((p) => p.owner !== me.idx && Math.abs(p.x - me.x) < 150 && Math.sign(me.x - p.x) === (Math.sign(p.vx) || p.dir));
   if ((threat || proj) && rnd(b) < D.def) {
     if (id === 'claude' && me.cd === 0) { out.special = true; return; }
     if (id === 'bug' && me.cd === 0 && R < 0.5) { h[dirT > 0 ? 'left' : 'right'] = true; out.special = true; return; }
@@ -70,6 +71,8 @@ function decide(g, me, b, D, out, st) {
       return;
     }
   }
+  const rg = RANGED[id].ai;
+  if (me.rcd === 0 && adx > rg[0] && adx < rg[1] && Math.abs(dy) < 90 && R < 0.3 + D.aggr * 0.25) { if (face()) out.shoot = true; return; }
   if (id === 'perplexity' && adx > 150 && adx < 600 && Math.abs(dy) < 60 && me.grounded && R < 0.55) { if (face()) out.heavy = true; return; }
   if (id === 'perplexity' && adx < 130 && R < 0.5) { move(-dirT); if (R < 0.25) out.jump = true; return; }
   if (dy < -70 && adx < 140) {

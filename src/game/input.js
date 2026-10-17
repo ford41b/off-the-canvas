@@ -1,6 +1,6 @@
 export const BINDS = {
-  p1: { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], jump: ['KeyW', 'Space'], attack: ['KeyF'], heavy: ['KeyG'], special: ['KeyH'], dodge: ['ShiftLeft'] },
-  p2: { left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'], jump: ['ArrowUp'], attack: ['KeyK', 'Numpad1'], heavy: ['KeyL', 'Numpad2'], special: ['Semicolon', 'Numpad3'], dodge: ['ShiftRight', 'Numpad0'] },
+  p1: { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], jump: ['KeyW', 'Space'], attack: ['KeyF'], heavy: ['KeyG'], special: ['KeyH'], shoot: ['KeyJ'], dodge: ['ShiftLeft'] },
+  p2: { left: ['ArrowLeft'], right: ['ArrowRight'], up: ['ArrowUp'], down: ['ArrowDown'], jump: ['ArrowUp'], attack: ['KeyK', 'Numpad1'], heavy: ['KeyL', 'Numpad2'], special: ['Semicolon', 'Numpad3'], shoot: ['Quote', 'Numpad4'], dodge: ['ShiftRight', 'Numpad0'] },
 };
 const ALL = new Set(Object.values(BINDS).flatMap((b) => Object.values(b).flat()));
 

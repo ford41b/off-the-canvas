@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, MotionConfig } from 'framer-motion';
 import { loadSettings, saveSettings } from '@/game/settings';
 import { setVolumes } from '@/game/audio';
 import Intro from '@/components/game/Intro';
@@ -30,6 +30,7 @@ export default function Game() {
   const labels = ['P1', setup.mode === 'versus' ? 'P2' : 'CPU'];
 
   return (
+    <MotionConfig reducedMotion={settings.reduced ? 'always' : 'user'}>
     <div className="fixed inset-0 bg-[#F4F1EA] text-[#14213D] font-body select-none">
       <AnimatePresence mode="wait">
         {screen === 'intro' && <Intro key="intro" onDone={() => { localStorage.setItem('otc_intro_seen', '1'); setReveal(true); setScreen('title'); }} />}
@@ -40,5 +41,6 @@ export default function Game() {
         {screen === 'results' && <Results key="results" result={result} labels={labels} onRematch={startMatch} onSelect={() => setScreen('select')} onMenu={() => setScreen('title')} />}
       </AnimatePresence>
     </div>
+    </MotionConfig>
   );
 }

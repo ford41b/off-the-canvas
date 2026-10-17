@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { drawBody, idlePose } from '@/game/bodies';
+import { drawBody, drawShadow, idlePose } from '@/game/bodies';
 
 export default function Portrait({ id, size = 120, facing = 1, stance = 'flash', className = '' }) {
   const ref = useRef(null);
@@ -11,7 +11,8 @@ export default function Portrait({ id, size = 120, facing = 1, stance = 'flash',
       t++;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, size, size);
       const s = (size / 100) * 1.15, p = idlePose(t, { stance });
-      ctx.translate(size / 2, size * 0.88 - p.bob); ctx.scale(s * facing, s * p.sy);
+      ctx.translate(size / 2, size * 0.88); ctx.scale(s, s); drawShadow(ctx, 0, 0, 46, p.bob * 4); ctx.scale(1 / s, 1 / s);
+      ctx.translate(0, -p.bob); ctx.scale(s * facing, s * p.sy);
       drawBody(ctx, id, p);
       raf = requestAnimationFrame(draw);
     };

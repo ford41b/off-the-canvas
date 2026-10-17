@@ -1,4 +1,5 @@
 import { burst, ring, sparks, text, talk, pick } from './fx';
+import { moveProjectile, tryCatch } from './ranged';
 
 export const startAct = (f, name, move, data = {}) => { f.act = { name, t: 0, move, hit: new Set(), data }; };
 export const hurtbox = (f) => ({ x: f.x - f.def.w / 2, y: f.y - f.def.h, w: f.def.w, h: f.def.h });
@@ -28,7 +29,7 @@ export function applyHit(g, att, tgt, m, name, dir, pt) {
   if (tgt.grounded && vy > 0) vy = -vy * 0.6;
   tgt.vx = vx; tgt.vy = vy;
   if (vy < 0) tgt.grounded = false;
-  tgt.combo++;
+  tgt.combo++; tgt.hitFlash = 6;
   if (tgt.combo > att.stats.maxCombo) att.stats.maxCombo = tgt.combo;
   let hs = Math.min(55, Math.round(kb * 2.1));
   if (tgt.combo > 3) hs = Math.round(hs * 0.6); // combo decay prevents locks
@@ -59,34 +60,85 @@ function triggerCounter(g, cl, att, m) {
 }
 
 export function spawnProjectile(g, f, type, m, opp) {
-  const base = { x: f.x + f.facing * 30, y: f.y - 34, vy: 0, owner: f.idx, type, angle: 30 };
-  if (type === 'marker') g.projectiles.push({ ...base, vx: f.facing * 8, life: 80, r: 9, dmg: 2, base: 2, growth: 0.1 });
-  else g.projectiles.push({ ...base, vx: f.facing * 11, life: 60, r: 13, dmg: m.dmg, base: m.base, growth: m.growth, angle: m.angle, homing: opp.mark > 0 });
+  const y = f.y - 34;
+  const base = { x: f.x + f.facing * 30, y, y0: y, vy: 0, owner: f.idx, dir: f.facing, type, motion: 'straight', angle: 30, ph: 0, tick: 0 };
+  if (type === 'marker') g.projectiles.push({ ...base, vx: f.facing * 8, life: 80, max: 80, r: 9, dmg: 2, base: 2, growth: 0.1 });
+  else g.projectiles.push({ ...base, vx: f.facing * 11, life: 60, max: 60, r: 13, dmg: m.dmg, base: m.base, growth: m.growth, angle: m.angle, homing: opp.mark > 0 });
+}
+
+export function popDecoy(g, dc) {
+  dc.popped = true; dc.life = Math.min(dc.life, 10);
+  text(g, dc.x, dc.y - 70, pick(['Nope.', 'Not real.', '?'], g.frame), '#7B5CE0');
+  sparks(g, dc.x, dc.y - 28, '#7B5CE0', 8, 4);
+  g.events.push({ type: 'pop' });
+}
+
+const touches = (p, box) => {
+  const cx = Math.max(box.x, Math.min(p.x, box.x + box.w)), cy = Math.max(box.y, Math.min(p.y, box.y + box.h));
+  return (cx - p.x) ** 2 + (cy - p.y) ** 2 <= p.r * p.r;
+};
+
+// Grok's bomb: area hit around the blast point, big feedback.
+function explode(g, p) {
+  p.life = 0;
+  const t = g.fighters[1 - p.owner];
+  if (!t.dead && t.invuln <= 0) {
+    const hb = hurtbox(t);
+    if (touches({ x: p.x, y: p.y, r: p.blast }, hb)) applyHit(g, g.fighters[p.owner], t, p, p.type, Math.sign(t.x - p.x) || p.dir, { x: Math.max(hb.x, Math.min(p.x, hb.x + hb.w)), y: Math.max(hb.y, Math.min(p.y, hb.y + hb.h)) });
+  }
+  burst(g, p.x, p.y, '#E23D3D', 46);
+  burst(g, p.x, p.y, '#26282F', 26);
+  ring(g, p.x, p.y, '#E23D3D', p.blast * 0.6);
+  sparks(g, p.x, p.y, '#E23D3D', 12, 8);
+  if (p.y < 760) g.shake = Math.max(g.shake, 10);
+  g.events.push({ type: 'boom' });
+}
+
+function groundAt(g, p) {
+  const m = g.stage.main;
+  if (p.x > m.x && p.x < m.x + m.w && p.y >= m.y && p.y < m.y + m.h) return true;
+  return g.stage.plats.concat(g.platforms).some((q) => p.vy > 0 && p.x > q.x && p.x < q.x + q.w && p.y >= q.y && p.y < q.y + 14);
+}
+
+function clash(g) {
+  const ps = g.projectiles;
+  for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) {
+    const a = ps[i], b = ps[j];
+    if (a.owner === b.owner || a.life <= 0 || b.life <= 0) continue;
+    if ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 > (a.r + b.r) ** 2) continue;
+    for (const p of [a, b]) { if (p.blast) explode(g, p); else p.life = 0; }
+    sparks(g, (a.x + b.x) / 2, (a.y + b.y) / 2, '#FFFFFF', 8, 5);
+    ring(g, (a.x + b.x) / 2, (a.y + b.y) / 2, '#14213D', 16);
+    g.events.push({ type: 'clash' });
+  }
 }
 
 export function updateProjectiles(g) {
   for (const p of g.projectiles) {
+    if (p.life <= 0) continue;
     p.life--;
-    const t = g.fighters[1 - p.owner];
+    const t = g.fighters[1 - p.owner], owner = g.fighters[p.owner];
     if (p.homing && !t.dead) {
       const dy = t.y - t.def.h / 2 - p.y;
       p.vy = Math.max(-3.5, Math.min(3.5, p.vy + Math.sign(dy) * 0.3));
     }
-    p.x += p.vx; p.y += p.vy;
-    if (t.dead || t.invuln > 0) continue;
-    const hb = hurtbox(t);
-    const cx = Math.max(hb.x, Math.min(p.x, hb.x + hb.w)), cy = Math.max(hb.y, Math.min(p.y, hb.y + hb.h));
-    if ((cx - p.x) ** 2 + (cy - p.y) ** 2 > p.r * p.r) continue;
+    moveProjectile(g, p);
+    if (tryCatch(g, p, owner)) { p.life = 0; continue; }
+    if (p.blast && (p.life === 0 || groundAt(g, p))) { explode(g, p); continue; }
+    for (const dc of g.decoys) if (dc.owner !== p.owner && !dc.popped && touches(p, { x: dc.x - 24, y: dc.y - 56, w: 48, h: 56 })) popDecoy(g, dc);
+    if (t.dead || t.invuln > 0 || !touches(p, hurtbox(t))) continue;
     if (isCountering(t)) { // Claude reflects projectiles
-      p.owner = t.idx; p.vx *= -1.3; p.dmg *= 1.3; p.homing = false; p.life = 60;
+      p.owner = t.idx; p.dir = t.facing; p.vx = t.facing * Math.max(9, Math.abs(p.vx) * 1.3); p.dmg *= 1.3;
+      p.homing = false; p.life = 60; p.max = 60; p.motion = p.blast ? 'arc' : 'straight'; if (p.blast) p.vy = -7;
       ring(g, p.x, p.y, t.def.color, 24); g.events.push({ type: 'counter' });
       continue;
     }
-    const owner = g.fighters[p.owner];
-    applyHit(g, owner, t, p, p.type, Math.sign(p.vx), { x: p.x, y: p.y });
+    if (p.blast) { explode(g, p); continue; }
+    applyHit(g, owner, t, p, p.type, Math.sign(t.x - p.x) || p.dir, { x: p.x, y: p.y });
     if (p.type === 'marker') { t.mark = 300; text(g, t.x, t.y - t.def.h - 20, '[source found]', '#12A39A'); }
-    else if (p.homing) t.mark = 0;
+    else if (p.type === 'lens' && p.homing) t.mark = 0;
     p.life = 0;
   }
-  g.projectiles = g.projectiles.filter((p) => p.life > 0 && p.x > -300 && p.x < 1600);
+  clash(g);
+  g.projectiles = g.projectiles.filter((p) => p.life > 0 && p.x > -300 && p.x < 1600 && p.y < 1100);
 }

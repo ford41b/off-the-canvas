@@ -1,19 +1,20 @@
 import { FIGHTERS } from './fighters';
 import { STAGES } from './stages';
-import { startAct, hitboxOf, hurtbox, overlap, applyHit, updateProjectiles } from './combat';
+import { startAct, hitboxOf, hurtbox, overlap, applyHit, updateProjectiles, popDecoy } from './combat';
 import { startSpecial, runSpecial } from './specials';
-import { updateEffects, talk, pick, sparks, ring, text } from './fx';
+import { startRanged } from './ranged';
+import { updateEffects, talk, pick, sparks, ring } from './fx';
 
 const G = 0.58;
-const KEYS = ['attack', 'heavy', 'special', 'dodge', 'jump'];
-export const blankInput = () => ({ left: false, right: false, up: false, down: false, jump: false, attack: false, heavy: false, special: false, dodge: false });
+const KEYS = ['attack', 'heavy', 'special', 'shoot', 'dodge', 'jump'];
+export const blankInput = () => ({ left: false, right: false, up: false, down: false, jump: false, attack: false, heavy: false, special: false, shoot: false, dodge: false });
 export const fighterDef = (id) => FIGHTERS.find((f) => f.id === id);
 const dirX = (i) => (i.right ? 1 : 0) - (i.left ? 1 : 0);
 
 function makeFighter(def, idx, spawn, stocks) {
   return {
     def, idx, x: spawn[0], y: spawn[1], vx: 0, vy: 0, facing: idx === 0 ? 1 : -1, grounded: true, jumps: def.jumps,
-    damage: 0, stocks, act: null, hitstun: 0, invuln: 0, cd: 0, recUsed: false, freefall: false, airDodge: false,
+    damage: 0, stocks, act: null, hitstun: 0, invuln: 0, cd: 0, cdMax: 1, rcd: 0, rcdMax: 1, hitFlash: 0, recUsed: false, freefall: false, airDodge: false,
     dropT: 0, landT: 0, hold: 0, stance: 'flash', mark: 0, lastMove: null, lastMoveT: 999, lastAttacker: -1, lastAttackerT: 999,
     combo: 0, comboT: 0, dead: 0, prev: blankInput(), buf: null, talkCd: 0, stale: [],
     stats: { dealt: 0, kos: 0, falls: 0, maxCombo: 0 },
@@ -56,7 +57,9 @@ export function step(g, inputs) {
 
 function updateFighter(g, f, inp) {
   if (f.dead > 0) { f.dead--; if (f.dead === 0) respawn(g, f); f.prev = { ...inp }; return; }
-  for (const k of ['invuln', 'cd', 'dropT', 'landT', 'talkCd', 'mark']) if (f[k] > 0) f[k]--;
+  for (const k of ['invuln', 'cd', 'rcd', 'hitFlash', 'dropT', 'landT', 'talkCd', 'mark']) if (f[k] > 0) f[k]--;
+  if (f.cd > f.cdMax) f.cdMax = f.cd;
+  if (f.rcd > f.rcdMax) f.rcdMax = f.rcd;
   f.lastMoveT++; f.lastAttackerT++;
   const P = {}; for (const k of [...KEYS, 'down']) P[k] = inp[k] && !f.prev[k];
   f.prev = { ...inp };
@@ -88,6 +91,11 @@ function free(g, f, inp, k, downPressed) {
   if (k === 'special') {
     if (inp.up && !f.recUsed) return doRecovery(g, f, dx);
     if (f.cd === 0) return startSpecial(g, f, inp, dx);
+    g.events.push({ type: 'denied' });
+    return;
+  }
+  if (k === 'shoot') {
+    if (f.rcd === 0) { startRanged(g, f, dx); return; }
     g.events.push({ type: 'denied' });
     return;
   }
@@ -204,12 +212,7 @@ function resolveHits(g) {
     const tgt = g.fighters[1 - att.idx];
     const hb = hitboxOf(att);
     if (!hb) continue;
-    for (const dc of g.decoys) if (dc.owner !== att.idx && !dc.popped && overlap(hb, { x: dc.x - 24, y: dc.y - 56, w: 48, h: 56 })) {
-      dc.popped = true; dc.life = Math.min(dc.life, 10);
-      text(g, dc.x, dc.y - 70, pick(['Nope.', 'Not real.', '?'], g.frame), '#7B5CE0');
-      sparks(g, dc.x, dc.y - 28, '#7B5CE0', 8, 4);
-      g.events.push({ type: 'pop' });
-    }
+    for (const dc of g.decoys) if (dc.owner !== att.idx && !dc.popped && overlap(hb, { x: dc.x - 24, y: dc.y - 56, w: 48, h: 56 })) popDecoy(g, dc);
     if (att.act.hit.has(tgt.idx) || tgt.dead || tgt.invuln > 0) continue;
     if (overlap(hb, hurtbox(tgt))) hits.push([att, tgt, att.act, hb]);
   }
@@ -254,7 +257,7 @@ function respawn(g, f) {
 export function resetFighters(g) {
   g.fighters.forEach((f, i) => {
     const [x, y] = g.stage.spawns[i];
-    Object.assign(f, { x, y, vx: 0, vy: 0, damage: 0, grounded: true, act: null, hitstun: 0, dead: 0, hold: 0, invuln: 0, cd: 0, mark: 0, facing: i === 0 ? 1 : -1 });
+    Object.assign(f, { x, y, vx: 0, vy: 0, damage: 0, grounded: true, act: null, hitstun: 0, dead: 0, hold: 0, invuln: 0, cd: 0, rcd: 0, mark: 0, facing: i === 0 ? 1 : -1 });
   });
   g.projectiles = []; g.platforms = []; g.decoys = [];
 }

@@ -2,14 +2,15 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Portrait from './Portrait';
 import { fighterDef } from '@/game/engine';
+import { labelColor } from '@/game/palette';
 
 function Stats({ r, label }) {
   const f = fighterDef(r.id);
   return (
     <div className="rounded-xl bg-white border-2 border-[#14213D]/15 p-3 font-mono text-xs">
-      <p className="font-bold mb-1" style={{ color: f.color === '#26282F' ? '#E23D3D' : f.color }}>{label} · {f.name}</p>
+      <p className="font-bold mb-1" style={{ color: labelColor(f) }}>{label} · {f.name}</p>
       {[['Damage dealt', Math.round(r.dealt) + '%'], ['KOs', r.kos], ['Falls', r.falls], ['Best combo', r.maxCombo + ' hits']].map(([a, b]) => (
-        <div key={a} className="flex justify-between gap-6"><span className="opacity-60">{a}</span><span>{b}</span></div>
+        <div key={a} className="flex justify-between gap-6"><span className="opacity-75">{a}</span><span>{b}</span></div>
       ))}
     </div>
   );
@@ -31,12 +32,12 @@ export default function Results({ result, labels, onRematch, onSelect, onMenu })
           </div>
         ) : (
           <div className="flex flex-col items-center">
-            <p className="font-mono text-xs tracking-[0.3em] opacity-60">{labels[result.winner]} WINS</p>
+            <p className="font-mono text-xs tracking-[0.3em] opacity-75">{labels[result.winner]} WINS</p>
             <motion.div initial={{ scale: 0.6, rotate: -6 }} animate={{ scale: 1, rotate: 0 }} className="rounded-3xl my-2" style={{ background: fighterDef(w.id).color + '22' }}>
               <Portrait id={w.id} size={200} />
             </motion.div>
             <h1 className="font-display font-bold text-5xl md:text-6xl">{fighterDef(w.id).name.toUpperCase()}</h1>
-            <p className="font-mono text-sm mt-1 text-[#E8684A]">&gt; {fighterDef(w.id).lines.ko[0]}</p>
+            <p className="font-mono text-sm mt-1" style={{ color: labelColor(fighterDef(w.id)) }}>&gt; {fighterDef(w.id).lines.ko[0]}</p>
           </div>
         )}
         <div className="flex flex-wrap gap-3 justify-center">

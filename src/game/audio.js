@@ -31,6 +31,12 @@ const SPECIAL = {
   perplexity: () => tone(1200, 0.1, 'sine', 0.08, -400), hallucination: () => tone(700, 0.25, 'sine', 0.08, -350),
   bug: () => { tone(180, 0.04, 'square', 0.08); tone(1400, 0.04, 'square', 0.06, 0, 0.04); }, rec: () => noise(0.15, 0.12, 2500),
 };
+const SHOOT = {
+  claude: () => tone(440, 0.22, 'triangle', 0.1, 220), codex: () => tone(1300, 0.05, 'square', 0.05, -300),
+  chatgpt: () => tone(600, 0.12, 'sine', 0.1, 300), gemini: () => { tone(880, 0.08, 'triangle', 0.07, 300); tone(1100, 0.08, 'triangle', 0.06, 300, 0.05); },
+  grok: () => { tone(160, 0.18, 'sawtooth', 0.08, 120); noise(0.12, 0.12, 1200); }, perplexity: () => { [0, 0.04, 0.08].forEach((d) => tone(1500, 0.04, 'sine', 0.06, -200, d)); },
+  hallucination: () => tone(500, 0.3, 'sine', 0.08, 500), bug: () => { tone(240, 0.03, 'square', 0.06); tone(1800, 0.03, 'square', 0.04, 0, 0.05); },
+};
 
 export function sfx(name, p = {}) {
   if (!ctx) return;
@@ -48,6 +54,10 @@ export function sfx(name, p = {}) {
     case 'denied': tone(150, 0.06, 'square', 0.05); break;
     case 'pop': tone(500, 0.15, 'sine', 0.08, -300); break;
     case 'special': SPECIAL[p.id]?.(); break;
+    case 'shoot': SHOOT[p.id]?.(); break;
+    case 'boom': noise(0.45, 0.4, 600); tone(70, 0.4, 'sawtooth', 0.16, -30); break;
+    case 'clash': tone(1700, 0.08, 'triangle', 0.08, -900); noise(0.05, 0.12, 4000); break;
+    case 'catch': tone(700, 0.08, 'sine', 0.08, 400); break;
     default:
   }
 }

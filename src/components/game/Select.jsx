@@ -10,7 +10,7 @@ const ids = FIGHTERS.map((f) => f.id);
 const shift = (id, d) => ids[(ids.indexOf(id) + d + ids.length) % ids.length];
 const Seg = ({ value, options, onChange }) => (
   <div className="inline-flex rounded-lg border-2 border-[#14213D] overflow-hidden">
-    {options.map(([v, l]) => <button key={v} onClick={() => { sfx('menu'); onChange(v); }} className={`px-3 py-1 font-mono text-xs ${value === v ? 'bg-[#14213D] text-white' : 'bg-white'}`}>{l}</button>)}
+    {options.map(([v, l]) => <button key={v} type="button" aria-pressed={value === v} onClick={() => { sfx('menu'); onChange(v); }} className={`px-3 py-1 font-mono text-xs ${value === v ? 'bg-[#14213D] text-white' : 'bg-white'}`}>{l}</button>)}
   </div>
 );
 
@@ -49,12 +49,12 @@ export default function Select({ setup, setSetup, onStart, onBack }) {
           <div className="hidden md:flex items-center font-display font-bold text-3xl text-[#14213D]/30">VS</div>
           <FighterPanel f={p2} label={p2Label} color="#2F5BEA" facing={-1} active={slot === 1} onActivate={() => setSlot(1)} />
         </div>
-        <p className="font-mono text-[11px] opacity-60">Picking for: <b>{slot === 0 ? 'P1' : p2Label}</b> · click a panel to switch · keyboard: P1 WASD, P2 arrows, Enter to start</p>
+        <p className="font-mono text-[11px] opacity-75">Picking for: <b>{slot === 0 ? 'P1' : p2Label}</b> · click a panel to switch · keyboard: P1 WASD, P2 arrows, Enter to start</p>
         <RosterGrid p1={setup.p1} p2={setup.p2} onPick={pick} />
         <div className="flex flex-wrap items-center gap-4 justify-between rounded-2xl bg-white border-2 border-[#14213D]/15 p-3">
           <div className="flex flex-wrap items-center gap-4">
-            {!training && <div className="flex items-center gap-2"><span className="font-mono text-xs opacity-60">STOCKS</span><Seg value={setup.stocks} onChange={(v) => set('stocks', v)} options={[[1, '1'], [2, '2'], [3, '3'], [5, '5']]} /></div>}
-            {setup.mode !== 'versus' && <div className="flex items-center gap-2"><span className="font-mono text-xs opacity-60">CPU</span><Seg value={setup.difficulty} onChange={(v) => set('difficulty', v)} options={[['easy', 'EASY'], ['normal', 'NORMAL'], ['hard', 'HARD']]} /></div>}
+            {!training && <div className="flex items-center gap-2"><span className="font-mono text-xs opacity-75">STOCKS</span><Seg value={setup.stocks} onChange={(v) => set('stocks', v)} options={[[1, '1'], [2, '2'], [3, '3'], [5, '5']]} /></div>}
+            {setup.mode !== 'versus' && <div className="flex items-center gap-2"><span className="font-mono text-xs opacity-75">CPU</span><Seg value={setup.difficulty} onChange={(v) => set('difficulty', v)} options={[['easy', 'EASY'], ['normal', 'NORMAL'], ['hard', 'HARD']]} /></div>}
             <button onClick={() => setShowControls((s) => !s)} className="font-mono text-xs underline">{showControls ? 'hide controls' : 'controls'}</button>
           </div>
           <button onClick={() => { sfx('select'); onStart(); }} className="px-8 py-3 rounded-xl bg-[#E8684A] text-white font-display font-bold tracking-wider border-2 border-[#14213D] shadow-[4px_4px_0_#14213D] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_#14213D] transition">

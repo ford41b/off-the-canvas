@@ -1,5 +1,6 @@
 import { A } from './fighters';
 import { startAct, spawnProjectile } from './combat';
+import { runRanged } from './ranged';
 import { burst, ghost, ring, sparks, talk, text, pick } from './fx';
 
 const ITER = {
@@ -8,7 +9,7 @@ const ITER = {
   rewrite: A(6, 4, 16, 8, 3, 1.1, -65, [24, -14, 58, 44]),
   draft: A(6, 8, 16, 7, 5, 1.1, 55, [0, -32, 96, 58]),
 };
-const ITER_FROM = { jab: 'lift', utilt: 'lift', heavy: 'pivot', fair: 'rewrite', uair: 'rewrite', dair: 'rewrite' };
+const ITER_FROM = { jab: 'lift', utilt: 'lift', heavy: 'pivot', bubble: 'pivot', fair: 'rewrite', uair: 'rewrite', dair: 'rewrite' };
 export const ITER_LABEL = { lift: '↑ LIFT', pivot: '→ PIVOT', rewrite: '↓ REWRITE', draft: '◎ DRAFT' };
 export const iterVariant = (f) => (f.lastMoveT < 50 && ITER_FROM[f.lastMove]) || 'draft';
 
@@ -105,6 +106,9 @@ export function runSpecial(g, f, inp, opp) {
         ghost(g, f, a.t % 2 ? '#3FD0E0' : '#E8684A');
       } else if (a.t < 12) { f.vx = 0; f.vy = 0; }
       if (a.t === 7) burst(g, f.x, f.y - 22, '#3FD0E0', 22);
+      break;
+    case 'ranged':
+      runRanged(g, f, opp);
       break;
     case 'rec':
       if (a.t < 10 && a.t % 3 === 0) ghost(g, f, f.def.accent);
