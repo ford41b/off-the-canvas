@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import Portrait from './Portrait';
 import { sfx, initAudio } from '@/game/audio';
 
-const ITEMS = [['FIGHT', 'fight'], ['TRAINING', 'training'], ['WATCH INTRO', 'intro'], ['SETTINGS', 'settings']];
+const ITEMS = [['FIGHT', 'fight'], ['DASH RACE', 'dash'], ['TRAINING', 'training'], ['WATCH INTRO', 'intro'], ['SETTINGS', 'settings']];
 
 export default function Title({ onPick, reveal }) {
   const go = (v) => { initAudio(); sfx('select'); onPick(v); };

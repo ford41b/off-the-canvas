@@ -5,9 +5,13 @@ import { sfx } from '@/game/audio';
 import FighterPanel from './FighterPanel';
 import RosterGrid from './RosterGrid';
 import Controls from './Controls';
+import StagePicker from './StagePicker';
+import { STAGE_IDS } from '@/game/stages';
 
 const ids = FIGHTERS.map((f) => f.id);
 const shift = (id, d) => ids[(ids.indexOf(id) + d + ids.length) % ids.length];
+const stageOpts = [...STAGE_IDS, 'random'];
+const shiftStage = (id, d) => stageOpts[(stageOpts.indexOf(id) + d + stageOpts.length) % stageOpts.length];
 const Seg = ({ value, options, onChange }) => (
   <div className="inline-flex rounded-lg border-2 border-[#14213D] overflow-hidden">
     {options.map(([v, l]) => <button key={v} type="button" aria-pressed={value === v} onClick={() => { sfx('menu'); onChange(v); }} className={`px-3 py-1 font-mono text-xs ${value === v ? 'bg-[#14213D] text-white' : 'bg-white'}`}>{l}</button>)}
@@ -25,6 +29,7 @@ export default function Select({ setup, setSetup, onStart, onBack }) {
     const k = (e) => {
       const m = { KeyA: ['p1', -1], KeyD: ['p1', 1], KeyW: ['p1', -4], KeyS: ['p1', 4], ArrowLeft: ['p2', -1], ArrowRight: ['p2', 1], ArrowUp: ['p2', -4], ArrowDown: ['p2', 4] }[e.code];
       if (m) { e.preventDefault(); sfx('menu'); setSetup((s) => ({ ...s, [m[0]]: shift(s[m[0]], m[1]) })); setSlot(m[0] === 'p1' ? 0 : 1); }
+      if (e.code === 'KeyQ' || e.code === 'KeyE') { sfx('menu'); setSetup((s) => ({ ...s, stage: shiftStage(s.stage, e.code === 'KeyE' ? 1 : -1) })); }
       if (e.code === 'Enter') { sfx('select'); onStart(); }
       if (e.code === 'Escape') onBack();
     };
@@ -51,6 +56,10 @@ export default function Select({ setup, setSetup, onStart, onBack }) {
         </div>
         <p className="font-mono text-[11px] opacity-75">Picking for: <b>{slot === 0 ? 'P1' : p2Label}</b> · click a panel to switch · keyboard: P1 WASD, P2 arrows, Enter to start</p>
         <RosterGrid p1={setup.p1} p2={setup.p2} onPick={pick} />
+        <section aria-label="Stage select">
+          <div className="flex items-baseline justify-between mb-2"><h2 className="font-display font-bold text-lg">STAGE</h2><span className="font-mono text-[11px] opacity-75">Q / E to cycle</span></div>
+          <StagePicker value={setup.stage} onChange={(v) => set('stage', v)} />
+        </section>
         <div className="flex flex-wrap items-center gap-4 justify-between rounded-2xl bg-white border-2 border-[#14213D]/15 p-3">
           <div className="flex flex-wrap items-center gap-4">
             {!training && <div className="flex items-center gap-2"><span className="font-mono text-xs opacity-75">STOCKS</span><Seg value={setup.stocks} onChange={(v) => set('stocks', v)} options={[[1, '1'], [2, '2'], [3, '3'], [5, '5']]} /></div>}

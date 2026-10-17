@@ -22,7 +22,9 @@ function makeFighter(def, idx, spawn, stocks) {
 }
 
 export function createGame({ p1, p2, stocks = 3, mode = 'cpu', stage = 'canvas', banter = true, reduced = false }) {
-  const st = STAGES[stage];
+  // Each match gets its own copy so moving platforms can be updated in place.
+  const st = structuredClone(STAGES[stage] || STAGES.canvas);
+  st.plats.forEach((p) => { p.x0 = p.x; p.y0 = p.y; });
   const g = {
     stage: st, mode, training: mode === 'training', frame: 0, hitstop: 0, shake: 0, projectiles: [], platforms: [],
     decoys: [], effects: [], bubbles: [], events: [], over: null, overT: 0, banter, reduced, cam: { x: 640, y: 400, z: 1 },
@@ -46,6 +48,7 @@ export function step(g, inputs) {
   if (g.frame === 70 && !g.training) talk(g, g.fighters[1], pick(g.fighters[1].def.lines.start, 1), true);
   if (g.hitstop > 0) { g.hitstop--; updateEffects(g); return; }
   g.shake *= 0.85;
+  movePlats(g);
   g.fighters.forEach((f, i) => updateFighter(g, f, inputs[i] || blankInput()));
   resolveHits(g);
   updateProjectiles(g);
@@ -53,6 +56,19 @@ export function step(g, inputs) {
   g.decoys.forEach((d) => { d.x += d.vx; d.life--; }); g.decoys = g.decoys.filter((d) => d.life > 0);
   checkKOs(g);
   updateEffects(g);
+}
+
+// Moving platforms carry whoever is standing on them.
+function movePlats(g) {
+  for (const p of g.stage.plats) {
+    if (!p.move) continue;
+    const { ax = 0, ay = 0, sp, ph = 0, orbit } = p.move, a = g.frame * sp + ph;
+    const nx = p.x0 + Math.sin(a) * ax, ny = p.y0 + Math.sin(a + (orbit ? Math.PI / 2 : 0)) * ay;
+    for (const f of g.fighters) {
+      if (!f.dead && f.grounded && f.dropT === 0 && Math.abs(f.y - p.y) < 1 && f.x > p.x - 4 && f.x < p.x + p.w + 4) { f.x += nx - p.x; f.y = ny; }
+    }
+    p.x = nx; p.y = ny;
+  }
 }
 
 function updateFighter(g, f, inp) {

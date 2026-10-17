@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createGame, step, resetFighters } from '@/game/engine';
+import { randomStage } from '@/game/stages';
 import { render } from '@/game/render';
 import { createInput } from '@/game/input';
 import { createBrain, think } from '@/game/ai';
@@ -19,7 +20,7 @@ export default function Match({ setup, settings, onEnd, onQuit }) {
   const single = setup.mode !== 'versus';
 
   const newGame = () => {
-    gameRef.current = createGame({ ...setup, banter: settings.banter, reduced: settings.reduced });
+    gameRef.current = createGame({ ...setup, stage: setup.stage === 'random' ? randomStage() : setup.stage, banter: settings.banter, reduced: settings.reduced });
     brainRef.current = createBrain(setup.difficulty);
   };
   const togglePause = (v) => { pausedRef.current = v; setPaused(v); };
@@ -42,6 +43,7 @@ export default function Match({ setup, settings, onEnd, onQuit }) {
       }
       playEvents(g.events);
       const c = canvasRef.current, dpr = window.devicePixelRatio || 1;
+      if (!c) return; // unmounting: the ref is gone before the effect cleanup cancels this loop
       if (c.width !== Math.round(c.clientWidth * dpr)) { c.width = Math.round(c.clientWidth * dpr); c.height = Math.round(c.clientHeight * dpr); }
       render(ctx, g, { scale: c.width / 1280, showHitboxes: trainRef.current.hit, reduced: settings.reduced, shakeOn: settings.shake, banter: settings.banter, p2Label: setup.mode === 'cpu' ? 'CPU' : setup.mode === 'training' ? 'DUMMY' : 'P2' });
       if (g.over && g.overT > 110 && !ended) { ended = true; onEnd(buildResult(g)); }
