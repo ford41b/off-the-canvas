@@ -57,15 +57,16 @@ export function drawHUD(ctx, g, opt) {
   const [a, b] = g.fighters;
   card(ctx, g, a, W / 2 - 310, H - 102, 'P1');
   card(ctx, g, b, W / 2 + 20, H - 102, opt.p2Label || 'P2');
-  ctx.save(); ctx.textAlign = 'center'; ctx.fillStyle = C.ink;
+  const fg = g.stage.theme?.dark ? '#FFFFFF' : C.ink;
+  ctx.save(); ctx.textAlign = 'center'; ctx.fillStyle = fg;
   ctx.font = '600 11px "JetBrains Mono", monospace'; ctx.globalAlpha = 0.6;
-  ctx.fillText(g.training ? 'TRAINING · R reset · T dummy on/off · Y hitboxes · ESC pause' : 'INFINITE CANVAS · ESC pause', W / 2, 28);
+  ctx.fillText(g.training ? 'TRAINING · R reset · T dummy on/off · Y hitboxes · ESC pause' : g.stage.name.toUpperCase() + ' · ESC pause', W / 2, 28);
   ctx.globalAlpha = 1;
   if (g.frame < 60 && !g.training) { ctx.font = '700 64px "Space Grotesk", sans-serif'; ctx.globalAlpha = 1 - g.frame / 60; ctx.fillText('FIGHT', W / 2, H / 2 - 40); }
   if (g.over) {
     const k = Math.min(1, g.overT / 15);
     ctx.globalAlpha = k; ctx.font = '700 96px "Space Grotesk", sans-serif';
-    ctx.fillStyle = g.over.tie ? C.coral : C.ink; ctx.fillText(g.over.tie ? '…?' : 'GAME!', W / 2, H / 2 - 30);
+    ctx.fillStyle = g.over.tie ? C.coral : fg; ctx.fillText(g.over.tie ? '…?' : 'GAME!', W / 2, H / 2 - 30);
   }
   ctx.restore();
 }

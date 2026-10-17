@@ -117,16 +117,83 @@ function drawProjectile(ctx, g, p) {
   ctx.restore();
 }
 
-function drawStage(ctx, g) {
-  const m = g.stage.main;
-  ctx.fillStyle = 'rgba(20,33,61,0.07)';
-  for (let x = -320; x < 1640; x += 64) for (let y = -320; y < 1100; y += 64) ctx.fillRect(x, y, 2.5, 2.5);
-  ctx.fillStyle = 'rgba(20,33,61,0.1)'; ctx.beginPath(); ctx.roundRect(m.x + 10, m.y + 12, m.w, m.h, 12); ctx.fill();
+const hash = (n) => { const v = Math.sin(n * 127.1) * 43758.5453; return v - Math.floor(v); };
+
+// Per-stage scenery, drawn in world space behind the platforms.
+function drawBackdrop(ctx, g) {
+  const th = g.stage.theme, t = g.reduced ? 0 : g.frame;
+  ctx.save();
+  if (th.deco === 'windows') {
+    ctx.fillStyle = 'rgba(20,33,61,0.06)';
+    for (let x = -320; x < 1640; x += 64) for (let y = -320; y < 1100; y += 64) ctx.fillRect(x, y, 2.5, 2.5);
+    [[120, 60, 380, 260], [760, 20, 420, 300], [420, 160, 300, 200]].forEach(([x, y, w, h], i) => {
+      ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.strokeStyle = 'rgba(20,33,61,0.12)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, 14); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y + 30); ctx.lineTo(x + w, y + 30); ctx.stroke();
+      [C.coral, '#FFC24A', C.green].forEach((c, k) => { ctx.fillStyle = c; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(x + 20 + k * 18, y + 15, 5, 0, 7); ctx.fill(); ctx.globalAlpha = 1; });
+      ctx.fillStyle = 'rgba(20,33,61,0.08)';
+      for (let k = 0; k < 4; k++) ctx.fillRect(x + 20, y + 52 + k * 26, (w - 40) * (0.4 + hash(i * 9 + k) * 0.6), 8);
+    });
+  } else if (th.deco === 'racks') {
+    for (let i = 0; i < 9; i++) {
+      const x = -120 + i * 180;
+      ctx.fillStyle = 'rgba(20,33,61,0.05)'; ctx.beginPath(); ctx.roundRect(x, 40, 120, 470, 8); ctx.fill();
+      for (let k = 0; k < 11; k++) {
+        ctx.fillStyle = 'rgba(20,33,61,0.06)'; ctx.fillRect(x + 10, 56 + k * 40, 100, 26);
+        const on = Math.floor(t / (12 + ((i + k) % 5) * 6) + hash(i * 31 + k) * 10) % 3 !== 0;
+        ctx.fillStyle = on ? ((i + k) % 4 ? C.green : C.coral) : 'rgba(20,33,61,0.15)'; ctx.globalAlpha = on ? 0.6 : 1;
+        ctx.fillRect(x + 92, 66 + k * 40, 6, 6); ctx.globalAlpha = 1;
+      }
+    }
+  } else if (th.deco === 'glyphs') {
+    ctx.font = '600 18px "JetBrains Mono", monospace'; ctx.textAlign = 'center';
+    const set = ['0', '1', '{', '}', 'tok', '##', '</s>', '…'];
+    for (let i = 0; i < 22; i++) {
+      const x = -200 + i * 80, sp = 0.6 + hash(i) * 0.9;
+      for (let k = 0; k < 7; k++) {
+        const y = ((k * 190 + t * sp + hash(i + k) * 400) % 1330) - 300;
+        ctx.fillStyle = k % 3 ? 'rgba(18,163,154,0.13)' : 'rgba(123,92,224,0.13)';
+        ctx.fillText(set[(i + k) % set.length], x, y);
+      }
+    }
+  } else if (th.deco === 'sand') {
+    ctx.fillStyle = 'rgba(160,110,40,0.12)';
+    for (let i = 0; i < 260; i++) ctx.fillRect(-320 + hash(i) * 1960, -300 + hash(i + 77) * 1400, 3, 3);
+    ctx.strokeStyle = 'rgba(160,110,40,0.18)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    [[200, 300], [1000, 260], [640, 120]].forEach(([x, y]) => {
+      ctx.beginPath(); ctx.moveTo(x - 50, y + 60); ctx.lineTo(x - 50, y); ctx.lineTo(x - 30, y); ctx.lineTo(x - 30, y + 14); ctx.lineTo(x - 10, y + 14); ctx.lineTo(x - 10, y);
+      ctx.lineTo(x + 10, y); ctx.lineTo(x + 10, y + 14); ctx.lineTo(x + 30, y + 14); ctx.lineTo(x + 30, y); ctx.lineTo(x + 50, y); ctx.lineTo(x + 50, y + 60); ctx.closePath(); ctx.stroke();
+    });
+  } else if (th.deco === 'stars') {
+    for (let i = 0; i < 140; i++) {
+      ctx.globalAlpha = 0.25 + 0.55 * Math.abs(Math.sin(t * 0.02 + i));
+      ctx.fillStyle = i % 9 ? '#FFFFFF' : C.cyan;
+      ctx.fillRect(-320 + hash(i) * 1960, -320 + hash(i + 5) * 1420, i % 6 ? 2 : 3, i % 6 ? 2 : 3);
+    }
+    ctx.globalAlpha = 0.08; ctx.fillStyle = C.violet; ctx.beginPath(); ctx.arc(980, 140, 140, 0, 7); ctx.fill();
+    ctx.fillStyle = C.cyan; ctx.beginPath(); ctx.arc(260, 220, 90, 0, 7); ctx.fill();
+  } else {
+    ctx.fillStyle = 'rgba(20,33,61,0.07)';
+    for (let x = -320; x < 1640; x += 64) for (let y = -320; y < 1100; y += 64) ctx.fillRect(x, y, 2.5, 2.5);
+  }
+  ctx.restore();
+}
+
+export function drawStage(ctx, g) {
+  const m = g.stage.main, th = g.stage.theme;
+  drawBackdrop(ctx, g);
+  ctx.fillStyle = th.dark ? 'rgba(0,0,0,0.3)' : 'rgba(20,33,61,0.1)'; ctx.beginPath(); ctx.roundRect(m.x + 10, m.y + 12, m.w, m.h, 12); ctx.fill();
   ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(m.x, m.y, m.w, m.h, 12); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = C.coral; ctx.fillRect(m.x + 24, m.y + m.h - 14, 60, 4); ctx.fillStyle = C.cobalt; ctx.fillRect(m.x + m.w - 84, m.y + m.h - 14, 60, 4);
+  ctx.fillStyle = th.a; ctx.fillRect(m.x + 24, m.y + m.h - 14, 60, 4); ctx.fillStyle = th.b; ctx.fillRect(m.x + m.w - 84, m.y + m.h - 14, 60, 4);
   for (const p of g.stage.plats) {
-    ctx.fillStyle = 'rgba(20,33,61,0.1)'; ctx.fillRect(p.x + 6, p.y + 6, p.w, 10);
-    ctx.fillStyle = '#FFFFFF'; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(p.x, p.y, p.w, 10, 5); ctx.fill(); ctx.stroke();
+    if (p.move) { // dashed rail showing where the platform travels
+      const { ax = 0, ay = 0, orbit } = p.move, cx = p.x0 + p.w / 2, cy = p.y0 + 5;
+      ctx.save(); ctx.strokeStyle = th.dark ? 'rgba(255,255,255,0.25)' : 'rgba(20,33,61,0.2)'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+      ctx.beginPath(); if (orbit) ctx.ellipse(cx, cy, ax, ay, 0, 0, 7); else { ctx.moveTo(cx - ax, cy - ay); ctx.lineTo(cx + ax, cy + ay); } ctx.stroke(); ctx.restore();
+    }
+    ctx.fillStyle = th.dark ? 'rgba(0,0,0,0.3)' : 'rgba(20,33,61,0.1)'; ctx.fillRect(p.x + 6, p.y + 6, p.w, 10);
+    ctx.fillStyle = '#FFFFFF'; ctx.strokeStyle = C.ink; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(p.x, p.y, p.w, 10, 5); ctx.fill(); ctx.stroke();
+    if (p.move) { ctx.fillStyle = th.a; ctx.fillRect(p.x + p.w / 2 - 12, p.y + 3, 24, 4); }
   }
   for (const p of g.platforms) {
     if (p.life < 50 && Math.floor(p.life / 5) % 2) continue;
@@ -157,6 +224,7 @@ function drawFighter(ctx, g, f) {
   if (f.hold > 0) { ctx.fillStyle = C.cyan; ctx.beginPath(); ctx.roundRect(f.x - 30, f.y + 3, 60, 5, 2.5); ctx.fill(); }
   ctx.save(); ctx.globalAlpha = alpha; ctx.translate(f.x + (p.shake || 0), f.y - p.bob);
   ctx.scale(f.facing, 1); ctx.rotate(p.lean * 0.35); ctx.scale(p.sx, p.sy);
+  if (g.stage.theme?.dark) { ctx.shadowColor = 'rgba(255,255,255,0.55)'; ctx.shadowBlur = 14; }
   if (f.hitFlash > 3) drawTinted(ctx, f.def.id, p, '#FFFFFF', 0.85); else drawBody(ctx, f.def.id, p);
   ctx.restore();
   const a = f.act, cy = f.y - f.def.h / 2;
@@ -186,7 +254,7 @@ function drawFighter(ctx, g, f) {
   swoosh(ctx, f);
 }
 
-function drawEffect(ctx, e) {
+export function drawEffect(ctx, e) {
   const k = e.life / e.max;
   ctx.save(); ctx.globalAlpha = Math.min(1, k * 1.5);
   if (e.type === 'spark') { ctx.fillStyle = e.color; ctx.fillRect(e.x - e.size / 2, e.y - e.size / 2, e.size, e.size); }
@@ -213,6 +281,7 @@ function drawBubbles(ctx, g) {
     ctx.font = '600 13px "JetBrains Mono", monospace';
     const w = ctx.measureText('> ' + b.text).width + 20, x = clamp(f.x - w / 2, 10, 1270 - w), y = f.y - f.def.h - 52;
     ctx.fillStyle = C.ink; ctx.beginPath(); ctx.roundRect(x, y, w, 28, 8); ctx.fill();
+    if (g.stage.theme?.dark) { ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.stroke(); }
     ctx.beginPath(); ctx.moveTo(f.x - 6, y + 28); ctx.lineTo(f.x + 6, y + 28); ctx.lineTo(f.x, y + 36); ctx.fill();
     ctx.fillStyle = C.cyan; ctx.fillText('>', x + 10, y + 18); ctx.fillStyle = '#FFFFFF'; ctx.fillText(b.text, x + 24, y + 18);
     ctx.restore();
@@ -221,7 +290,7 @@ function drawBubbles(ctx, g) {
 
 export function render(ctx, g, opt) {
   ctx.save(); ctx.setTransform(opt.scale, 0, 0, opt.scale, 0, 0);
-  ctx.fillStyle = C.paper; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = g.stage.theme?.bg || C.paper; ctx.fillRect(0, 0, W, H);
   const cam = opt.fixedCam || camera(g, opt.reduced);
   ctx.save();
   let sx = 0, sy = 0;
